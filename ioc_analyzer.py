@@ -39,7 +39,10 @@ api_keys = [
 ]
 
 # Path to ChromeDriver executable for Selenium Talos lookups
-CHROMEDRIVER_PATH = "CUsers/User/Desktop/talos/chromedriver"
+# Default to the chromedriver included with this project. Adjust the path if
+# running on another system.
+import os
+CHROMEDRIVER_PATH = os.path.join(os.path.dirname(__file__), "chromedriver.exe")
 
 
 class APIKeyManager:
@@ -384,6 +387,7 @@ def check_ioc_comprehensive(
     api_key_manager,
     selected_vendors=None,
     include_talos=True,
+    driver_path=None,
     chrome_options=None,
     timeout=10,
     delay=2,
@@ -395,8 +399,10 @@ def check_ioc_comprehensive(
     talos_result = {}
     if include_talos and chrome_options:
         try:
-            # Remove cache_valid_range parameter and use install() directly
-            service = Service(ChromeDriverManager().install())
+            if driver_path:
+                service = Service(driver_path)
+            else:
+                service = Service(ChromeDriverManager().install())
             talos_result = check_ioc_talos_selenium(
                 ioc, ioc_type, service, chrome_options, timeout
             )
@@ -719,7 +725,8 @@ def process_iocs_concurrently(
                     api_key_manager,
                     selected_vendors,
                     include_talos,
-                    chrome_options,  # Pass options instead of driver_path
+                    driver_path,
+                    chrome_options,
                     timeout,
                 )
                 future_to_ioc[future] = (ioc, ioc_type)
@@ -878,23 +885,13 @@ def main():
             print("No IOCs extracted.")
             return
 
-        # Create Chrome options here
-        chrome_options = Options()
-        chrome_options.add_argument("--headless")
-        chrome_options.add_argument("--no-sandbox")
-        chrome_options.add_argument("--disable-dev-shm-usage")
-        chrome_options.add_argument("--disable-gpu")
-        chrome_options.add_argument("--window-size=1920,1080")
-        chrome_options.add_argument("--disable-extensions")
-        chrome_options.add_argument("--dns-prefetch-disable")
-        chrome_options.page_load_strategy = 'eager'
-
         results = process_iocs_concurrently(
             iocs,
             api_keys,
             selected_vendors=COMMON_VT_VENDORS,
             include_talos=True,
-            driver_path=chrome_options,  # Pass options instead of driver path
+            driver_path=CHROMEDRIVER_PATH,
+            timeout=10,
         )
         saved_file = output_to_excel(results, output_file, total_read, duplicates_skipped)
         print(f"Results saved to {saved_file}")
