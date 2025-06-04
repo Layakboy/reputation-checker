@@ -4,6 +4,7 @@ import time
 from tkinter import Tk, filedialog
 import base64
 import os
+import sys
 from concurrent.futures import ThreadPoolExecutor, as_completed
 import threading
 from tqdm import tqdm
@@ -40,9 +41,13 @@ api_keys = [
 ]
 
 # Path to ChromeDriver executable for Selenium Talos lookups
-# Default to the chromedriver included with this project. Adjust the path if
-# running on another system.
-CHROMEDRIVER_PATH = os.path.join(os.path.dirname(__file__), "chromedriver.exe")
+# Detect operating system and use the appropriate driver name. The path is kept
+# relative to this file so execution from other directories still works.
+if sys.platform.startswith("win"):
+    _driver_file = "chromedriver.exe"
+else:
+    _driver_file = "chromedriver"
+CHROMEDRIVER_PATH = os.path.join(os.path.dirname(__file__), _driver_file)
 
 
 class APIKeyManager:
